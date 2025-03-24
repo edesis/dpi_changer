@@ -1,93 +1,54 @@
-import fitz  # PyMuPDF
-import os
+
+
 import zipfile
+import os
 import shutil
-import tempfile
+from PIL import Image
 
-# PDF dosyalarının bulunduğu klasör
-pdf_folder = "sinif8sozel2_outputs.zip"
-dpi = 100
+# ZIP dosyasının bulunduğu ana klasör (Yeni klasör yolunu buraya yazın)
+zip_folder = r"C:\Users\BozkayAsus\Erkan\KES-DENEME\life store\whatsapp indirilen dosyalar\8. SINIF İNTERAKTİF"
 
-def is_valid_pdf(file_path):
-    # macOS system files ve geçersiz dosyaları kontrol et
-    if os.path.basename(file_path).startswith('._') or file_path.startswith('__MACOSX'):
-        return False
-    return file_path.lower().endswith('.pdf')
+# Alt klasörleri de dahil ederek ZIP dosyalarını çıkar
+for root, dirs, files in os.walk(zip_folder):
+    # ZIP dosyalarını bul
+    zip_files = [f for f in files if f.lower().endswith(".zip")]
 
-def process_pdfs(input_path, output_path):
-    # Klasördeki tüm PDF dosyalarını recursive olarak bul
-    pdf_files = []
-    for root, dirs, files in os.walk(input_path):
-        # __MACOSX klasörünü atla
-        if '__MACOSX' in dirs:
-            dirs.remove('__MACOSX')
-        for file in files:
-            file_path = os.path.join(root, file)
-            if is_valid_pdf(file_path):
-                pdf_files.append(file_path)
+    for zip_file in zip_files:
+        zip_path = os.path.join(root, zip_file)
+        extract_folder = os.path.join(root, zip_file.replace(".zip", ""))  # ZIP dosyasının çıkacağı klasör
 
-    if not pdf_files:
-        print(f"Hata: '{input_path}' klasöründe PDF dosyası bulunamadı!")
-        return False
+        # ZIP dosyasını çıkart
+        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_folder)
+            print(f"{zip_file} ZIP dosyası çıkarıldı!")
 
-    success = True
-    for pdf_path in pdf_files:
-        try:
-            doc = fitz.open(pdf_path)  # PDF dosyasını aç
+        # Çıkarılan dosyalar üzerinde işlem yapma (PNG dosyaları)
+        for sub_root, sub_dirs, sub_files in os.walk(extract_folder):
+            png_files = [f for f in sub_files if f.lower().endswith(".png")]
 
-            # PDF içindeki her sayfayı PNG olarak kaydet
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                pix = page.get_pixmap(dpi=dpi)
+            # Eğer PNG dosyaları varsa
+            if png_files:
+                # ZIP dosyasını tekrar oluştur
+                zip_output_path = os.path.join(root, f"{os.path.basename(sub_root)}_600DPI_PNG.zip")
+                with zipfile.ZipFile(zip_output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for png_file in png_files:
+                        png_path = os.path.join(sub_root, png_file)
 
-                # PNG dosyasını PDF ile aynı klasöre, sayfa numarası ile kaydet
-                base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-                output_image_path = os.path.join(os.path.dirname(pdf_path), f"{base_name}__sayfa{page_num + 1}.png")
+                        try:
+                            # PNG dosyasını aç
+                            img = Image.open(png_path)
 
-                pix.save(output_image_path)
-                print(f"✅ Kaydedildi: {output_image_path}")
+                            # DPI'yı 600 olarak ayarla
+                            img.save(png_path, dpi=(600, 600))
 
-            doc.close()  # Belleği temizle
+                            # 600 DPI ile kaydedilen dosyayı ZIP dosyasına ekle
+                            zipf.write(png_path, arcname=png_file)
+                            print(f"✅ {png_file} dosyası 600 DPI'ya güncellendi ve ZIP'e eklendi.")
+                        except Exception as e:
+                            print(f"❌ Hata oluştu: {png_file} -> {e}")
 
-        except Exception as e:
-            print(f"❌ Hata oluştu: {pdf_path} -> {e}")
-            success = False
-            continue  # Diğer dosyaları işlemeye devam et
+        # ZIP dosyasını çıkarıldıktan sonra klasörü sil (isteğe bağlı)
+        shutil.rmtree(extract_folder)
+        print(f"{zip_file} dosyasının içeriği temizlendi ve çıkarma klasörü silindi!")
 
-    return success
-
-def main():
-    # Geçici klasör oluştur
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Eğer girdi ZIP dosyası ise
-        if pdf_folder.lower().endswith('.zip'):
-            # ZIP dosyasını geçici klasöre çıkart
-            with zipfile.ZipFile(pdf_folder, 'r') as zip_ref:
-                zip_ref.extractall(temp_dir)
-            
-            # PDF'leri işle
-            if process_pdfs(temp_dir, None):
-                # Sonuçları yeni bir ZIP dosyasına ekle
-                output_zip = pdf_folder.replace('.zip', '_processed.zip')
-                with zipfile.ZipFile(output_zip, 'w', zipfile.ZIP_DEFLATED) as zip_ref:
-                    for root, dirs, files in os.walk(temp_dir):
-                        # __MACOSX klasörünü atla
-                        if '__MACOSX' in dirs:
-                            dirs.remove('__MACOSX')
-                        for file in files:
-                            if file.lower().endswith('.png'):
-                                file_path = os.path.join(root, file)
-                                arcname = os.path.relpath(file_path, temp_dir)
-                                zip_ref.write(file_path, arcname)
-                print(f"\n🎉 İşlenmiş dosyalar '{output_zip}' dosyasına kaydedildi!")
-            else:
-                print("\n❌ İşlem başarısız oldu!")
-        else:
-            # Normal klasör işleme
-            if process_pdfs(pdf_folder, None):
-                print("\n🎉 Tüm PDF'ler başarıyla PNG'ye dönüştürüldü!")
-            else:
-                print("\n❌ İşlem başarısız oldu!")
-
-if __name__ == "__main__":
-    main()
+print("\n🎉 Tüm işlemler tamamlandı! ZIP dosyaları dışarı çıkarıldı ve her biri 600 DPI'ya güncellendi.")
