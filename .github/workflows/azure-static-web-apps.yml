@@ -22,8 +22,10 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/static-web-app" # Location of your static web app
-          skip_app_build: true # Since this is a static site, we don't need to build
+          app_location: "static-web-app"
+          skip_app_build: true
+          output_location: "static-web-app"
+          verbose: true
 
   close_pull_request_job:
     runs-on: ubuntu-latest
