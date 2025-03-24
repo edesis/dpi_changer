@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF to PNG Converter</title>
+    <title>PDF'den PNG'ye Dönüştürücü</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
@@ -68,17 +68,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>PDF to PNG Converter</h1>
+        <h1>PDF'den PNG'ye Dönüştürücü</h1>
         
         <div class="form-group">
-            <label for="dpi">DPI Value:</label>
+            <label for="dpi">DPI Değeri:</label>
             <input type="number" id="dpi" min="72" max="600" value="100">
         </div>
 
         <div class="form-group">
-            <label>Select Files or Folder:</label>
+            <label>Bir zip dosyası veya zip dosyalarından oluşan bir klasör veya bir klasör seçin:</label>
             <input type="file" id="fileInput" accept=".pdf,.zip" multiple webkitdirectory directory>
-            <button id="convertBtn" disabled>Convert</button>
+            <button id="convertBtn" disabled>Dönüştür</button>
         </div>
 
         <div class="progress">
